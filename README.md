@@ -23,9 +23,6 @@
 - CSS
 - JavaScript (vanilla)
 
-## 📸 Vista previa
-
-(¡Puedes agregar una imagen de la app aquí si gustas!)
 
 ## 🚀 Uso
 
