@@ -1,245 +1,106 @@
-const taskInput = document.getElementById('task');
-const dueDateInput = document.getElementById('due-date');
-const submitButton = document.getElementById('submit');
-const taskList = document.getElementById('task-list');
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("task-form");
+  const taskInput = document.getElementById("task-input");
+  const taskDate = document.getElementById("task-date");
+  const taskTime = document.getElementById("task-time");
+  const taskList = document.getElementById("task-list");
+  const filterButtons = document.querySelectorAll(".filters button");
+  const themeToggle = document.getElementById("theme-toggle");
 
-const filterAllBtn = document.getElementById('filter-all');
-const filterCompletedBtn = document.getElementById('filter-completed');
-const filterPendingBtn = document.getElementById('filter-pending');
+  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+  let currentFilter = "all";
 
-submitButton.addEventListener('click', addTask);
-taskInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    addTask();
-  }
-});
-
-filterAllBtn.addEventListener('click', () => showTasks('all'));
-filterCompletedBtn.addEventListener('click', () => showTasks('completed'));
-filterPendingBtn.addEventListener('click', () => showTasks('pending'));
-
-function addTask() {
-  const valueInput = taskInput.value.trim();
-  const dueDateValue = dueDateInput.value;
-
-  if (valueInput === '') return;
-
-  const newTask = createTaskElement(valueInput, false, dueDateValue);
-  taskList.appendChild(newTask);
-  taskInput.value = '';
-  dueDateInput.value = '';
-
-  saveTasksToLocalStorage();
-  showTasks(currentFilter);  // Aplicar filtro actual después de agregar
-}
-
-function createTaskElement(text, completed = false, dueDate = '') {
-  const li = document.createElement('li');
-  const span = document.createElement('span');
-  span.style.cursor = 'pointer';
-
-  // Asignar texto + fecha al span al crear
-  span.textContent = text;
-  if (dueDate) {
-    const dateLabel = document.createElement('small');
-    const parts = dueDate.split('-');
-    const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    dateLabel.textContent = ` (${completed ? 'Venció' : 'Vence'}: ${formattedDate})`;
-    span.appendChild(dateLabel);
+  // Cargar modo desde localStorage
+  if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark-mode");
+    themeToggle.textContent = "☀️ Modo Claro";
   }
 
-  if (completed) span.classList.add('completed');
-
-  if (dueDate) {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const dueDateTime = new Date(dueDate).getTime();
-    const todayTime = new Date(todayStr).getTime();
-    const timeDiff = dueDateTime - todayTime;
-
-    li.classList.remove('overdue', 'warning');
-
-    if (!completed) {
-      if (timeDiff < 0) {
-        li.classList.add('overdue');
-      } else if (timeDiff <= 2 * 86400000) {
-        li.classList.add('warning');
-      }
-    }
-  }
-
-  span.addEventListener('dblclick', () => {
-    const inputEdit = document.createElement('input');
-    inputEdit.type = 'text';
-    inputEdit.classList.add('editing');
-    inputEdit.value = text;
-    li.replaceChild(inputEdit, span);
-    inputEdit.focus();
-
-    function finishEditing(save) {
-      if (save) {
-        const newValue = inputEdit.value.trim();
-        if (newValue) {
-          // Limpiar y reconstruir span con texto + fecha
-          span.textContent = newValue;
-          if (dueDate) {
-            const dateLabel = document.createElement('small');
-            const parts = dueDate.split('-');
-            const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            dateLabel.textContent = ` (${li.classList.contains('overdue') ? 'Venció' : 'Vence'}: ${formattedDate})`;
-            span.appendChild(dateLabel);
-          }
-        }
-      }
-      li.replaceChild(span, inputEdit);
-      saveTasksToLocalStorage();
-      showTasks(currentFilter); // Actualizar filtro tras edición
-    }
-
-    inputEdit.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') finishEditing(true);
-      else if (event.key === 'Escape') finishEditing(false);
-    });
-
-    inputEdit.addEventListener('blur', () => finishEditing(true));
+  themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+    const isDark = document.body.classList.contains("dark-mode");
+    themeToggle.textContent = isDark ? "☀️ Modo Claro" : "🌙 Modo Oscuro";
+    localStorage.setItem("theme", isDark ? "dark" : "light");
   });
 
-  span.addEventListener('click', () => {
-    span.classList.toggle('completed');
-    saveTasksToLocalStorage();
-    showTasks(currentFilter); // Actualizar filtro tras toggle completado
-  });
-
-  const deleteBtn = document.createElement('span');
-  deleteBtn.textContent = '❌';
-  deleteBtn.classList.add('delete');
-  deleteBtn.addEventListener('click', (event) => {
-    event.stopPropagation();
-    li.remove();
-    saveTasksToLocalStorage();
-  });
-
-  // --- Drag & Drop ---
-  li.setAttribute('draggable', 'true');
-
-  li.addEventListener('dragstart', (e) => {
-    li.classList.add('dragging');
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData('text/plain', null); // para compatibilidad Firefox
-  });
-
-  li.addEventListener('dragend', () => {
-    li.classList.remove('dragging');
-    saveTasksToLocalStorage();
-  });
-
-  li.addEventListener('dragover', (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
-    const draggingEl = document.querySelector('.dragging');
-    if (draggingEl === li) return;
-
-    const bounding = li.getBoundingClientRect();
-    const offset = e.clientY - bounding.top;
-    const after = offset > bounding.height / 2;
-
-    if (after) {
-      li.parentNode.insertBefore(draggingEl, li.nextSibling);
-    } else {
-      li.parentNode.insertBefore(draggingEl, li);
-    }
+    const newTask = {
+      id: Date.now(),
+      text: taskInput.value,
+      date: taskDate.value || null,
+      time: taskTime.value || null,
+      completed: false,
+    };
+    tasks.push(newTask);
+    form.reset();
+    saveTasks();
+    renderTasks();
   });
 
-  li.appendChild(span);
-  li.appendChild(deleteBtn);
-  return li;
-}
-
-// Variable para mantener el filtro actual
-let currentFilter = 'all';
-
-function showTasks(filter) {
-  currentFilter = filter; // Actualizamos filtro actual
-  const items = taskList.querySelectorAll('li');
-
-  items.forEach(li => {
-    const span = li.querySelector('span');
-    const isCompleted = span.classList.contains('completed');
-
-    switch(filter) {
-      case 'all':
-        li.style.display = '';
-        break;
-      case 'completed':
-        li.style.display = isCompleted ? '' : 'none';
-        break;
-      case 'pending':
-        li.style.display = !isCompleted ? '' : 'none';
-        break;
-    }
+  filterButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      filterButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      renderTasks();
+    });
   });
 
-  updateFilterButtons();
-}
-
-// Opcional: marcar botón activo
-function updateFilterButtons() {
-  filterAllBtn.classList.toggle('active', currentFilter === 'all');
-  filterCompletedBtn.classList.toggle('active', currentFilter === 'completed');
-  filterPendingBtn.classList.toggle('active', currentFilter === 'pending');
-}
-
-function saveTasksToLocalStorage() {
-  const tasks = [];
-  const listItems = taskList.querySelectorAll('li');
-
-  listItems.forEach(item => {
-    const span = item.querySelector('span');
-    let textNode = '';
-    if (span.childNodes.length > 0) {
-      const firstNode = span.childNodes[0];
-      textNode = firstNode.textContent || firstNode.nodeValue || '';
-      textNode = textNode.trim();
-    } else {
-      textNode = span.textContent.trim();
-    }
-
-    const completed = span.classList.contains('completed');
-    const dueDateText = span.querySelector('small')?.textContent || '';
-    const dueDate = dueDateText.match(/\d{4}-\d{2}-\d{2}/)?.[0] || '';
-
-    tasks.push({ text: textNode, completed, dueDate });
-  });
-
-  localStorage.setItem('tasks', JSON.stringify(tasks));
-}
-
-function loadTasksFromLocalStorage() {
-  const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-
-  tasks.forEach(task => {
-    const newTask = createTaskElement(task.text, task.completed, task.dueDate);
-    taskList.appendChild(newTask);
-  });
-
-  showTasks(currentFilter); // Aplicar filtro al cargar tareas
-}
-
-const toggleBtn = document.getElementById('toggle-theme');
-
-toggleBtn.addEventListener('click', () => {
-  document.body.classList.toggle('dark');
-
-  const darkMode = document.body.classList.contains('dark');
-  localStorage.setItem('darkMode', darkMode);
-
-  toggleBtn.textContent = darkMode ? '☀️ Modo claro' : '🌙 Modo oscuro';
-});
-
-window.addEventListener('DOMContentLoaded', () => {
-  const savedMode = localStorage.getItem('darkMode') === 'true';
-  if (savedMode) {
-    document.body.classList.add('dark');
-    toggleBtn.textContent = '☀️ Modo claro';
+  function saveTasks() {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
   }
-});
 
-loadTasksFromLocalStorage();
+  function renderTasks() {
+    taskList.innerHTML = "";
+    const now = new Date();
+    tasks.filter(task => {
+      if (!task.date || !task.time) return currentFilter === "all" || currentFilter === "pending";
+      const taskDateTime = new Date(`${task.date}T${task.time}`);
+      if (currentFilter === "completed") return task.completed;
+      if (currentFilter === "pending") return !task.completed && taskDateTime >= now;
+      if (currentFilter === "expired") return !task.completed && taskDateTime < now;
+      return true;
+    }).forEach(task => {
+      const li = document.createElement("li");
+      li.className = "task";
+      if (task.completed) li.classList.add("completed");
+      else if (task.date && task.time && new Date(`${task.date}T${task.time}`) < now) li.classList.add("expired");
+
+      const timeInfo = task.date && task.time ? ` - ${task.date} ${task.time}` : "";
+      li.innerHTML = `
+        <span>${task.text}${timeInfo}</span>
+        <div>
+          <button class="toggle">${task.completed ? "↩" : "✔"}</button>
+          <button class="edit">✏️</button>
+          <button class="delete">🗑️</button>
+        </div>
+      `;
+
+      li.querySelector(".toggle").addEventListener("click", () => {
+        task.completed = !task.completed;
+        saveTasks();
+        renderTasks();
+      });
+
+      li.querySelector(".delete").addEventListener("click", () => {
+        tasks = tasks.filter(t => t.id !== task.id);
+        saveTasks();
+        renderTasks();
+      });
+
+      li.querySelector(".edit").addEventListener("click", () => {
+        const newText = prompt("Editar tarea:", task.text);
+        if (newText) {
+          task.text = newText;
+          saveTasks();
+          renderTasks();
+        }
+      });
+
+      taskList.appendChild(li);
+    });
+  }
+
+  renderTasks();
+});

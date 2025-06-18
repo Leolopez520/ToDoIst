@@ -1,40 +1,32 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToDO List</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lista de Tareas</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="container">
-        <h1>TO-DO LIST</h1>
-        <button id="toggle-theme">🌙 Modo oscuro</button>
-        <div class="form">
-            <input type="text" id="task" placeholder="Nueva tarea" />
-            <input type="date" id="due-date" />
-            <button id="submit">➕ Add</button>
-        </div>
+  <div class="container">
+    <h1>Lista de Tareas</h1>
+    <button id="theme-toggle">🌙 Modo Oscuro</button>
+    <form id="task-form">
+      <input type="text" id="task-input" placeholder="Nueva tarea..." required />
+      <input type="date" id="task-date" />
+      <input type="time" id="task-time" />
+      <button type="submit">Agregar</button>
+    </form>
 
-
-        <div id="filters">
-            <button id="filter-all" class="active">Todas</button>
-            <button id="filter-completed">Completadas</button>
-            <button id="filter-pending">Pendientes</button>
-        </div>
-
-
-        
-        <ul id="task-list">
-        
-        </ul>
-        
-
-        
-
-
+    <div class="filters">
+      <button data-filter="all" class="active">Todas</button>
+      <button data-filter="pending">Pendientes</button>
+      <button data-filter="completed">Completadas</button>
+      <button data-filter="expired">Vencidas</button>
     </div>
-    <script src="script.js"></script>
+
+    <ul id="task-list"></ul>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
